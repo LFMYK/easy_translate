@@ -4,7 +4,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.example.liufuming.easytranslate"
-        minSdkVersion 14
+        minSdkVersion 16
 
         targetSdkVersion 28
         versionCode 1
@@ -46,11 +46,41 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    implementation 'com.squareup.retrofit2:retrofit:2.0.2'
+//implementation 'com.squareup.retrofit2:retrofit:2.0.2'
     // retrofit2
     implementation 'com.squareup.okhttp3:okhttp:3.1.2'
     // okhttp3
 
     implementation 'com.squareup.retrofit2:converter-gson:2.0.2'
     implementation 'com.google.code.gson:gson:2.6.2'
+
+
+    implementation 'com.github.bumptech.glide:glide:4.4.0'
+
+
+    // Android 支持 Rxjava
+// 此处一定要注意使用RxJava2的版本
+    implementation 'io.reactivex.rxjava2:rxjava:2.0.1'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
+
+// Android 支持 Retrofit
+    implementation 'com.squareup.retrofit2:retrofit:2.1.0'
+
+// 衔接 Retrofit & RxJava
+// 此处一定要注意使用RxJava2的版本
+    implementation 'com.jakewharton.retrofit:retrofit2-rxjava2-adapter:1.0.0'
+
+
+
+
+    /*
+       implementation 'com.jakewharton.rxbinding2:rxbinding:2.0.0'
+
+       compile 'com.jakewharton.rxbinding:rxbinding:1.0.0'
+       compile 'com.jakewharton.rxbinding:rxbinding-support-v4:1.0.0'
+       compile 'com.jakewharton.rxbinding:rxbinding-appcompat-v7:1.0.0'
+       compile 'com.jakewharton.rxbinding:rxbinding-design:1.0.0'
+       compile 'com.jakewharton.rxbinding:rxbinding-recyclerview-v7:1.0.0'
+       compile 'com.jakewharton.rxbinding:rxbinding-leanback-v17:1.0.0'
+       */
 }

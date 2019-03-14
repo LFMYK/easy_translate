@@ -1,11 +1,7 @@
 package com.example.liufuming.easytranslate;
-import android.Manifest;
-import android.content.Context;
-import android.content.pm.PackageManager;
+
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
-import android.net.Uri;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,18 +12,18 @@ import android.widget.EditText;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import java.io.IOException;
-
-import okhttp3.FormBody;
-
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
+import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="MainActivity";
@@ -40,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonPhEnMp3;
     private Button buttonPhAmMp3;
 
-    //private MediaPlayer mediaPlayer; // 媒体播放器
 
     private Spinner spinnerFrom;
     public String stringSelectFrom="auto";
@@ -61,31 +56,13 @@ public class MainActivity extends AppCompatActivity {
 
         textViewSoundmarkEn=findViewById(R.id.textView_soundmark_en);
         textViewSoundmarkAm=findViewById(R.id.textView_soundmark_am);
-/*
-        if (ContextCompat.checkSelfPermission(MainActivity.this,Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
-        }else{
-            initMediaPlayer();
-        }
-*/
-        /*
-        try {
-            mediaPlayer.setDataSource(MainActivity.this, Uri.parse("http://res.iciba.com/resource/amp3/oxford/0/e8/7d/e87dcdd7986213c8def8af06571439d9.mp3"));
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-*/
-        //mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);// 设置媒体流类型
 
         spinnerFrom=findViewById(R.id.spinner_from);
-
 
         ArrayAdapter adapterFrom = ArrayAdapter.createFromResource(MainActivity.this,R.array.planets_from,android.R.layout.simple_spinner_dropdown_item );
         adapterFrom.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerFrom.setAdapter(adapterFrom);
 
-
-        //System.out.println(spinnerFrom.getSelectedItem());
 
         spinnerFrom.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -118,6 +95,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+        //加载按钮背景图
+        Glide.with(this).load(R.mipmap.sound)
+        .into(new SimpleTarget<Drawable>() {
+            @Override
+            public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
+                buttonPhEnMp3.setBackground(resource);
+                buttonPhAmMp3.setBackground(resource);
+            }
+        });
+
+        //加载文本背景图
+        Glide.with(this).load(R.mipmap.pointing_right)
+                .into(new SimpleTarget<Drawable>() {
+                    @Override
+                    public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
+                        findViewById(R.id.textView).setBackground(resource);
+                    }
+                });
 
 
         buttonPhEnMp3.setOnClickListener(new View.OnClickListener() {
@@ -159,8 +155,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 request();
-
-                //Log.d(TAG,"哈哈");
             }
         });
 
@@ -179,20 +173,7 @@ public class MainActivity extends AppCompatActivity {
             default:return "auto";
         }
     }
-/*
-    @Override
-    public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){
-        switch (requestCode){
-            case 1:
-                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
-                    initMediaPlayer();
-                }else{
-                    Toast.makeText(this,"拒绝权限将无法使用程序",Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-        }
-    }
-*/
+
 
 
 
@@ -205,14 +186,82 @@ public class MainActivity extends AppCompatActivity {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://fy.iciba.com/") // 设置 网络请求 Url
                 .addConverterFactory(GsonConverterFactory.create()) //设置使用Gson解析(记得加入依赖)
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create()) // 支持RxJava
                 .build();
 
         // 步骤5:创建 网络请求接口 的实例
         GetRequest_Interface request = retrofit.create(GetRequest_Interface.class);
 
         //对 发送请求 进行封装
-        Call<Translation> call = request.getCall(this.stringSelectFrom,this.stringSelectTo,editTextOriginalText.getText().toString());//editTextOriginalText.getText().toString()
+        //Call<Translation> call = request.getCall(this.stringSelectFrom,this.stringSelectTo,editTextOriginalText.getText().toString());
+        Observable<Translation> observableCall = request.getCall(this.stringSelectFrom,this.stringSelectTo,editTextOriginalText.getText().toString());
 
+
+        //步骤6:发送网络请求(异步)
+        observableCall.subscribeOn(Schedulers.io())               // 切换到IO线程进行网络请求
+                .observeOn(AndroidSchedulers.mainThread())  // 切换回到主线程 处理请求结果
+                .subscribe(new Observer<Translation>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                    }
+
+                    @Override
+                    public void onNext(Translation translation) {
+                        // 接收服务器返回的数据
+                        // 步骤7：处理返回的数据结果
+
+                        final String string=translation.getContent().getTranslationText();
+                        final String phEn=translation.getContent().getPhEn();
+                        final String phAm=translation.getContent().getPhAm();
+
+                        phAmMp3Url=translation.getContent().getPhAmMp3();
+                        phEnMp3Url=translation.getContent().getPhEnMp3();
+
+
+                        if (string != null) {
+                            editTextTranslationResult.setText(string);
+
+                            if (phEn != null && !"".equals(phEn)) {
+                                textViewSoundmarkEn.setText("英[" + phEn + "]");
+                                textViewSoundmarkEn.setVisibility(View.VISIBLE);
+                                buttonPhEnMp3.setVisibility(View.VISIBLE);
+
+
+                            }else{
+                                textViewSoundmarkEn.setVisibility(View.GONE);
+                                buttonPhEnMp3.setVisibility(View.GONE);
+                            }
+
+
+                            if (phAm != null && !"".equals(phAm)) {
+                                textViewSoundmarkAm.setText("美[" + phAm + "]");
+                                textViewSoundmarkAm.setVisibility(View.VISIBLE);
+                                buttonPhAmMp3.setVisibility(View.VISIBLE);
+                            }else{
+                                textViewSoundmarkAm.setVisibility(View.GONE);
+                                buttonPhAmMp3.setVisibility(View.GONE);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG,  e.toString());
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+
+    }
+}
+
+
+
+
+/*先屏蔽掉
         Log.d(TAG,"查看URL：");
         Log.d(TAG,call.request().url().toString());
 
@@ -244,11 +293,12 @@ public class MainActivity extends AppCompatActivity {
 
                 phAmMp3Url=response.body().getContent().getPhAmMp3();
                 phEnMp3Url=response.body().getContent().getPhEnMp3();
-
+//System.out.println(response.body().toString());
 
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+
                         if (string != null) {
                             editTextTranslationResult.setText(string);
 
@@ -285,5 +335,5 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"连接失败");
             }
         });
-    }
-}
+先屏蔽掉*/
+
